@@ -1,0 +1,14 @@
+-- implementation for messaging service
+
+-- services
+-- messages table
+-- conversations
+-- users table (can handle this with mongodb / postgres --> next js | golang )
+-- participants table ( )
+-- attachments table () //for a great denormalized tables ie for scylla / cassandra
+-- read receipts table () //users who read message
+-- notifications table () //optional
+-- message reactions table()
+-- archived users table()
+-- blocked users table()
+-- groups table / communities () //optional
