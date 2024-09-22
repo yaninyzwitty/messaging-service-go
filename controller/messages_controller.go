@@ -72,7 +72,7 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 func (c *MessageController) GetMessagesByPagingState(w http.ResponseWriter, r *http.Request) {
 	var ctx = r.Context()
 	// Read query parameters for page size and paging state
-	pageSizeInStr := r.URL.Query().Get("pageSize")
+	pageSizeInStr := r.URL.Query().Get("page_size")
 	pagingStateInStr := r.URL.Query().Get("paging_state")
 
 	pageSize, err := strconv.Atoi(pageSizeInStr)
