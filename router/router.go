@@ -30,6 +30,9 @@ func NewRouter(controller *controller.MessageController) http.Handler {
 	router.HandleFunc("GET /messages", func(w http.ResponseWriter, r *http.Request) {
 		middlewareChain(http.HandlerFunc(controller.GetMessages)).ServeHTTP(w, r)
 	})
+	router.HandleFunc("GET //pagination", func(w http.ResponseWriter, r *http.Request) {
+		middlewareChain(http.HandlerFunc(controller.GetMessagesByPagingState)).ServeHTTP(w, r)
+	})
 	router.HandleFunc("GET /messages/{id}", func(w http.ResponseWriter, r *http.Request) {
 		middlewareChain(http.HandlerFunc(controller.GetMessage)).ServeHTTP(w, r)
 	})
