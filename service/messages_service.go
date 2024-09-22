@@ -14,6 +14,7 @@ type MessagesService interface {
 	GetMessage(ctx context.Context, messageId gocql.UUID) (models.Message, error)
 	DeleteMessage(ctx context.Context, messageId gocql.UUID) error
 	UpdateMessage(ctx context.Context, messageId gocql.UUID, message models.Message) (models.Message, error)
+	GetMessagesByPagingState(ctx context.Context, pageSize int, pagingState []byte) ([]models.Message, []byte, error)
 }
 
 type messageService struct {
@@ -42,4 +43,8 @@ func (s *messageService) DeleteMessage(ctx context.Context, messageId gocql.UUID
 
 func (s *messageService) UpdateMessage(ctx context.Context, messageId gocql.UUID, message models.Message) (models.Message, error) {
 	return s.repo.UpdateMessage(ctx, messageId, message)
+}
+
+func (s *messageService) GetMessagesByPagingState(ctx context.Context, pageSize int, pagingState []byte) ([]models.Message, []byte, error) {
+	return s.repo.GetMessagesByPagingState(ctx, pageSize, pagingState)
 }

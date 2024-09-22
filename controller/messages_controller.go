@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -63,6 +64,38 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 	err = helpers.NewResponseToJson(w, http.StatusOK, messages)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+}
+
+func (c *MessageController) GetMessagesByPagingState(w http.ResponseWriter, r *http.Request) {
+	var ctx = r.Context()
+	// Read query parameters for page size and paging state
+	pageSizeInStr := r.URL.Query().Get("pageSize")
+	pagingStateInStr := r.URL.Query().Get("paging_state")
+
+	pageSize, err := strconv.Atoi(pageSizeInStr)
+	if err != nil || pageSize <= 0 {
+		// use default page size
+		pageSize = 10
+	}
+	pagingState := []byte(pagingStateInStr) //we are getting the previous paging state
+
+	// we try to fetch paginated messages
+	messages, newPagingState, err := c.service.GetMessagesByPagingState(ctx, pageSize, pagingState)
+	if err != nil {
+		http.Error(w, "error getting the paginated messages"+err.Error(), http.StatusInternalServerError)
+	}
+	// Return messages and next page token (paging state)
+	response := models.MessageWithPagingState{
+		Messages:      messages,
+		NextPageToken: string(newPagingState),
+	}
+
+	err = helpers.NewResponseToJson(w, http.StatusOK, response)
+	if err != nil {
+		http.Error(w, "error decoding the response"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

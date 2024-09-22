@@ -16,6 +16,7 @@ type MessagesRepository interface {
 	DeleteMessage(ctx context.Context, messageId gocql.UUID) error
 	GetMessages(ctx context.Context) ([]models.Message, error)
 	GetMessage(ctx context.Context, id gocql.UUID) (models.Message, error)
+	GetMessagesByPagingState(ctx context.Context, pageSize int, pagingState []byte) ([]models.Message, []byte, error)
 }
 
 // messagesRepository is the concrete implementation of MessagesRepository.
@@ -108,5 +109,31 @@ func (r *messagesRepository) GetMessage(ctx context.Context, id gocql.UUID) (mod
 		return models.Message{}, err
 	}
 	return message, nil
+
+}
+
+func (r *messagesRepository) GetMessagesByPagingState(ctx context.Context, pageSize int, pagingState []byte) ([]models.Message, []byte, error) {
+	var messages []models.Message
+	// here we build the query by applying paging to it
+	query := qb.Select(models.MessageTable.Name()).Columns("id", "conversation_id", "sender_id", "created_at", "updated_at", "body", "is_soft_deleted").Query(*r.session).PageSize(pageSize).PageState(pagingState)
+	// here we get the iterator
+	iter := query.Iter()
+	defer iter.Close()
+	// Iterate over the results and scan into the slice
+	for {
+		var message models.Message
+		if !iter.Scan(&message.ID, &message.ConversationID, &message.SenderId, &message.CreatedAt, &message.UpdatedAt, &message.Body, &message.IsSoftDeleted) {
+			break
+		} else {
+			messages = append(messages, message)
+		}
+	}
+	// Get the next paging state for future queries (this can be stored and reused)
+	nextPageState := iter.PageState()
+
+	if err := iter.Close(); err != nil {
+		return []models.Message{}, nil, err
+	}
+	return messages, nextPageState, nil
 
 }

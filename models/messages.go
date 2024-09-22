@@ -17,6 +17,12 @@ type Message struct {
 	IsSoftDeleted  bool       `json:"is_soft_deleted"`
 }
 
+// CHECK IF THIS WILL WORK
+type MessageWithPagingState struct {
+	Messages      []Message `json:"messages"`
+	NextPageToken string    `json:"next_page_token,omitempty"`
+}
+
 var messageMetadata = table.Metadata{
 	Name: "messaging_keyspace.messages",
 	Columns: []string{
