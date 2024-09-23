@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -71,34 +72,52 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 
 func (c *MessageController) GetMessagesByPagingState(w http.ResponseWriter, r *http.Request) {
 	var ctx = r.Context()
+
 	// Read query parameters for page size and paging state
 	pageSizeInStr := r.URL.Query().Get("page_size")
 	pagingStateInStr := r.URL.Query().Get("paging_state")
 
+	// Parse pageSize, with a default fallback of 10
 	pageSize, err := strconv.Atoi(pageSizeInStr)
 	if err != nil || pageSize <= 0 {
-		// use default page size
 		pageSize = 10
 	}
-	pagingState := []byte(pagingStateInStr) //we are getting the previous paging state
 
-	// we try to fetch paginated messages
+	// Decode the paging state from URL-safe base64, allow empty for first page
+	var pagingState []byte
+	if pagingStateInStr != "" {
+		pagingState, err = base64.URLEncoding.DecodeString(pagingStateInStr)
+		if err != nil {
+			http.Error(w, "Error decoding the paging state: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Fetch paginated messages
 	messages, newPagingState, err := c.service.GetMessagesByPagingState(ctx, pageSize, pagingState)
 	if err != nil {
-		http.Error(w, "error getting the paginated messages"+err.Error(), http.StatusInternalServerError)
-	}
-	// Return messages and next page token (paging state)
-	response := models.MessageWithPagingState{
-		Messages:      messages,
-		NextPageToken: string(newPagingState),
-	}
-
-	err = helpers.NewResponseToJson(w, http.StatusOK, response)
-	if err != nil {
-		http.Error(w, "error decoding the response"+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error fetching paginated messages: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Encode the new paging state for the response using URL-safe encoding
+	base64EncodedPagingState := ""
+	if newPagingState != nil {
+		base64EncodedPagingState = base64.URLEncoding.EncodeToString(newPagingState)
+	}
+
+	// Create response structure
+	response := map[string]interface{}{
+		"messages":        messages,
+		"next_page_token": base64EncodedPagingState,
+	}
+
+	// Send JSON response
+	err = helpers.NewResponseToJson(w, http.StatusOK, response)
+	if err != nil {
+		http.Error(w, "Error encoding the response: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (c *MessageController) GetMessage(w http.ResponseWriter, r *http.Request) {
